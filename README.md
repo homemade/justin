@@ -1,4 +1,4 @@
-# justin (JustGiving Interface)
+# justin (JustGiving Interface) [![GoDoc](https://godoc.org/github.com/homemade/justin?status.svg)](https://godoc.org/github.com/homemade/justin)
 
 `justin` is a Go library providing a higher-level wrapper around the [JustGiving API](https://api.justgiving.com/docs)
 
