@@ -50,7 +50,8 @@ Creating the service:
     // ...
   }
   // Optionally a logger can be specified to log raw http requests/responses
-  var logger LoggerFunc
+  //()
+  var logger api.LoggerFunc
   logger = func(m string) (err error) {
     fmt.Printf("[%v] %s", time.Now(), m))
     return nil

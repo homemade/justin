@@ -1,3 +1,4 @@
+// Package api provides common utility functions for working with HTTP(S) APIs
 package api
 
 import (
@@ -10,14 +11,16 @@ import (
 	"text/template"
 )
 
+// RequestTemplates provides a cache of RequestTemplates
 var RequestTemplates map[string]RequestTemplate
 
+// RequestTemplate contains a *template.Template used to build API requests
 type RequestTemplate struct {
 	err error
 	t   *template.Template
 }
 
-// Logger provides a simple interface for logging API calls made using frazzle
+// Logger provides a simple interface for logging API calls
 type Logger interface {
 	Log(m string) (err error)
 }
@@ -30,6 +33,7 @@ func (f LoggerFunc) Log(m string) (err error) {
 	return f(m)
 }
 
+// BuildBody returns the body of an API request built from the specified template and data
 func BuildBody(templateName string, data interface{}) (io.Reader, error) {
 	rt := RequestTemplates[templateName]
 	if rt.err != nil {
@@ -46,6 +50,7 @@ func BuildBody(templateName string, data interface{}) (io.Reader, error) {
 	return &result, err
 }
 
+// BuildRequest assembles an API request ready for transport
 func BuildRequest(userAgent string, method string, reqPath string, reqBody io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, reqPath, reqBody)
 	if err != nil {
@@ -57,24 +62,23 @@ func BuildRequest(userAgent string, method string, reqPath string, reqBody io.Re
 	return req, nil
 }
 
+// Do transports a single API request
 func Do(client *http.Client, req *http.Request, logger Logger) (res *http.Response, readBody string, err error) {
 	readBody = ""
-	if logger != nil {
-		logger.Log(fmt.Sprintf("http request=%v\n", req))
-	}
 	res, err = client.Do(req)
-	if logger != nil {
-		logger.Log(fmt.Sprintf("http response=%v\n", res))
-	}
 	if err != nil {
+		if logger != nil {
+			logger.Log(fmt.Sprintf("logging api call\nhttp request=%v\nhttp response=%v\n", req, res))
+		}
 		return res, readBody, err
 	}
 	defer res.Body.Close()
 	buffer, err := ioutil.ReadAll(res.Body)
 	readBody = string(buffer)
 	if logger != nil {
-		logger.Log(fmt.Sprintf("http response body=%s\n", readBody))
+		logger.Log(fmt.Sprintf("logging api call\nhttp request=%v\nhttp response=%v\nhttp response body=%s\n", req, res, readBody))
 	}
+
 	return res, readBody, err
 }
 
@@ -83,6 +87,7 @@ type batchedRequest struct {
 	Request  *http.Request
 }
 
+// DoBatch transports a sequence of API requests concurrently
 func DoBatch(client *http.Client, reqs []*http.Request, logger Logger) (resps []*http.Response, readBodies []string, errs []error) {
 	z := len(reqs)
 
