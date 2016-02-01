@@ -13,7 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/homemade/justin/models"
+	"bitbucket.org/homemade/justin/api"
+	"bitbucket.org/homemade/justin/models"
 )
 
 const (
@@ -40,7 +41,7 @@ func createService(t *testing.T, env Env) *Service {
 	// Set a timeout for our API requests
 	tim := time.Duration(20) * time.Second
 	// Add a simple console logger for the http requests/responses
-	var logger LoggerFunc
+	var logger api.LoggerFunc
 	logger = func(m string) (err error) {
 		t.Log(fmt.Sprintf("[%v] %s", time.Now(), m))
 		return nil

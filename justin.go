@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/homemade/justin/api"
-	"github.com/homemade/justin/models"
+	"bitbucket.org/homemade/justin/api"
+	"bitbucket.org/homemade/justin/models"
 )
 
 // Env represents a JustGiving Environment
@@ -49,19 +49,6 @@ type Service struct {
 	client *http.Client
 }
 
-// Logger provides a simple interface for logging API calls made using justin
-type Logger interface {
-	Log(m string) (err error)
-}
-
-// LoggerFunc provides a simple type for single function implementations of the Logger interface
-type LoggerFunc func(m string) (err error)
-
-// Log defines the single method Logger interface
-func (f LoggerFunc) Log(m string) (err error) {
-	return f(m)
-}
-
 // APIKeyContext contains settings for creating a justin Service with an API Key.
 //
 // HTTPLogger is an optional implementation of the Logger interface, if not provided no logging will be carried out
@@ -69,7 +56,7 @@ type APIKeyContext struct {
 	APIKey     string
 	Env        Env
 	Timeout    time.Duration
-	HTTPLogger Logger
+	HTTPLogger api.Logger
 }
 
 // CreateWithAPIKey instantiates the Service using an APIKey for authentication
@@ -339,7 +326,7 @@ func (svc *Service) FundraisingPageURLCheck(pageShortName string) (avail bool, s
 	path.WriteString("/")
 	path.WriteString(svc.APIKey)
 	path.WriteString("/v1/fundraising/pages/suggest?preferredName=")
-	path.WriteString(pageShortName)
+	path.WriteString(url.QueryEscape(pageShortName))
 	req, err = api.BuildRequest(UserAgent, "GET", path.String(), nil)
 	res, resBody, err := api.Do(svc.client, req, svc.HTTPLogger)
 	if err != nil {
