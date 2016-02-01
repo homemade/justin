@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"time"
 
-	"bitbucket.org/homemade/justin/api"
-	"bitbucket.org/homemade/justin/models"
+	"github.com/homemade/justin/api"
+	"github.com/homemade/justin/models"
 )
 
 // Env represents a JustGiving Environment

@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"bitbucket.org/homemade/justin/api"
-	"bitbucket.org/homemade/justin/models"
+	"github.com/homemade/justin/api"
+	"github.com/homemade/justin/models"
 )
 
 const (
