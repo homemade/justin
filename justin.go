@@ -24,6 +24,9 @@ const (
 	// UserAgent is set to identify justin requests
 	UserAgent = "justin " + Version
 
+	// ContentType is that used in the JustGiving API requests/responses
+	ContentType = "application/json"
+
 	// TODO cache from Sandbox using https://github.com/homemade/ersatz?
 	Local Env = iota
 
@@ -47,6 +50,7 @@ type Service struct {
 	BasePath string
 
 	client *http.Client
+	origin string
 }
 
 // APIKeyContext contains settings for creating a justin Service with an API Key.
@@ -85,6 +89,11 @@ func CreateWithAPIKey(api APIKeyContext) (svc *Service, err error) {
 	return svc, nil
 }
 
+// TraceOrigin will augment any logging with the specified origin
+func (svc *Service) TraceOrigin(origin string) {
+	svc.origin = origin
+}
+
 // AccountAvailabilityCheck checks the availability of a JustGiving account by email address
 func (svc *Service) AccountAvailabilityCheck(account mail.Address) (avail bool, err error) {
 
@@ -100,12 +109,12 @@ func (svc *Service) AccountAvailabilityCheck(account mail.Address) (avail bool, 
 	path.WriteString("/v1/account/")
 	path.WriteString(em)
 
-	req, err := api.BuildRequest(UserAgent, method, path.String(), nil)
+	req, err := api.BuildRequest(UserAgent, ContentType, method, path.String(), nil)
 	if err != nil {
 		return false, err
 	}
 
-	res, _, err := api.Do(svc.client, req, svc.HTTPLogger)
+	res, _, err := api.Do(svc.client, svc.origin, "AccountAvailabilityCheck", req, "", svc.HTTPLogger)
 	if err != nil {
 		return false, err
 	}
@@ -143,17 +152,18 @@ func (svc *Service) Validate(account mail.Address, password string) (valid bool,
 		Email    string
 		Password string
 	}{em, password}
-	body, err := api.BuildBody("Validate", data)
+
+	sBody, body, err := api.BuildBody("Validate", data, ContentType)
 	if err != nil {
 		return false, err
 	}
 
-	req, err := api.BuildRequest(UserAgent, method, path.String(), body)
+	req, err := api.BuildRequest(UserAgent, ContentType, method, path.String(), body)
 	if err != nil {
 		return false, err
 	}
 
-	res, resBody, err := api.Do(svc.client, req, svc.HTTPLogger)
+	res, resBody, err := api.Do(svc.client, svc.origin, "Validate", req, sBody, svc.HTTPLogger)
 	if err != nil {
 		return false, err
 	}
@@ -181,16 +191,16 @@ func (svc *Service) AccountRegistration(account models.Account) (err error) {
 	path.WriteString(svc.APIKey)
 	path.WriteString("/v1/account/")
 
-	body, err := api.BuildBody("AccountRegistration", account)
+	sBody, body, err := api.BuildBody("AccountRegistration", account, ContentType)
 	if err != nil {
 		return err
 	}
-	req, err := api.BuildRequest(UserAgent, method, path.String(), body)
+	req, err := api.BuildRequest(UserAgent, ContentType, method, path.String(), body)
 	if err != nil {
 		return err
 	}
 
-	res, _, err := api.Do(svc.client, req, svc.HTTPLogger)
+	res, _, err := api.Do(svc.client, svc.origin, "AccountRegistration", req, sBody, svc.HTTPLogger)
 	if err != nil {
 		return err
 	}
@@ -222,12 +232,12 @@ func (svc *Service) IsValidCountry(name string) (bool, error) {
 	path.WriteString(svc.APIKey)
 	path.WriteString("/v1/countries")
 
-	req, err := api.BuildRequest(UserAgent, method, path.String(), nil)
+	req, err := api.BuildRequest(UserAgent, ContentType, method, path.String(), nil)
 	if err != nil {
 		return false, err
 	}
 
-	res, resBody, err := api.Do(svc.client, req, svc.HTTPLogger)
+	res, resBody, err := api.Do(svc.client, svc.origin, "IsValidCountry", req, "", svc.HTTPLogger)
 	if err != nil {
 		return false, err
 	}
@@ -269,12 +279,12 @@ func (svc *Service) RequestPasswordReminder(account mail.Address) error {
 	path.WriteString(em)
 	path.WriteString("/requestpasswordreminder")
 
-	req, err := api.BuildRequest(UserAgent, method, path.String(), nil)
+	req, err := api.BuildRequest(UserAgent, ContentType, method, path.String(), nil)
 	if err != nil {
 		return err
 	}
 
-	res, _, err := api.Do(svc.client, req, svc.HTTPLogger)
+	res, _, err := api.Do(svc.client, svc.origin, "RequestPasswordReminder", req, "", svc.HTTPLogger)
 	if err != nil {
 		return err
 	}
@@ -300,12 +310,12 @@ func (svc *Service) FundraisingPageURLCheck(pageShortName string) (avail bool, s
 	path.WriteString("/v1/fundraising/pages/")
 	path.WriteString(pageShortName)
 
-	req, err := api.BuildRequest(UserAgent, method, path.String(), nil)
+	req, err := api.BuildRequest(UserAgent, ContentType, method, path.String(), nil)
 	if err != nil {
 		return false, suggs, err
 	}
 
-	res, _, err := api.Do(svc.client, req, svc.HTTPLogger)
+	res, _, err := api.Do(svc.client, svc.origin, "FundraisingPageURLCheck", req, "", svc.HTTPLogger)
 	if err != nil {
 		return false, suggs, err
 	}
@@ -327,8 +337,8 @@ func (svc *Service) FundraisingPageURLCheck(pageShortName string) (avail bool, s
 	path.WriteString(svc.APIKey)
 	path.WriteString("/v1/fundraising/pages/suggest?preferredName=")
 	path.WriteString(url.QueryEscape(pageShortName))
-	req, err = api.BuildRequest(UserAgent, "GET", path.String(), nil)
-	res, resBody, err := api.Do(svc.client, req, svc.HTTPLogger)
+	req, err = api.BuildRequest(UserAgent, ContentType, "GET", path.String(), nil)
+	res, resBody, err := api.Do(svc.client, svc.origin, "FundraisingPageURLCheck", req, "", svc.HTTPLogger)
 	if err != nil {
 		return false, suggs, err
 	}
@@ -352,11 +362,11 @@ func (svc *Service) RegisterFundraisingPageForEvent(account mail.Address, passwo
 	path.WriteString(svc.APIKey)
 	path.WriteString("/v1/fundraising/pages")
 
-	body, err := api.BuildBody("RegisterFundraisingPageForEvent", page)
+	sBody, body, err := api.BuildBody("RegisterFundraisingPageForEvent", page, ContentType)
 	if err != nil {
 		return nil, nil, err
 	}
-	req, err := api.BuildRequest(UserAgent, method, path.String(), body)
+	req, err := api.BuildRequest(UserAgent, ContentType, method, path.String(), body)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -367,7 +377,7 @@ func (svc *Service) RegisterFundraisingPageForEvent(account mail.Address, passwo
 	em = em[1 : len(em)-1]
 	req.SetBasicAuth(em, password)
 
-	res, resBody, err := api.Do(svc.client, req, svc.HTTPLogger)
+	res, resBody, err := api.Do(svc.client, svc.origin, "RegisterFundraisingPageForEvent", req, sBody, svc.HTTPLogger)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -376,7 +386,8 @@ func (svc *Service) RegisterFundraisingPageForEvent(account mail.Address, passwo
 	if res.StatusCode != 201 {
 		// run request validation on failure
 		var info string
-		valid, err := page.HasValidCurrencyCode(svc)
+		var valid bool
+		valid, err = page.HasValidCurrencyCode(svc)
 		if err != nil {
 			info = fmt.Sprintf("errors running CurrencyCode validation %v; ", err)
 		} else {
@@ -401,7 +412,7 @@ func (svc *Service) RegisterFundraisingPageForEvent(account mail.Address, passwo
 			URL string `json:"uri"`
 		} `json:"next"`
 	}{}
-	if err := json.Unmarshal([]byte(resBody), &result); err != nil {
+	if err = json.Unmarshal([]byte(resBody), &result); err != nil {
 		return nil, nil, fmt.Errorf("invalid response %v", err)
 	}
 	pageURL, err = url.Parse(result.Page.URL)
@@ -426,12 +437,12 @@ func (svc *Service) IsValidCurrencyCode(code string) (bool, error) {
 	path.WriteString(svc.APIKey)
 	path.WriteString("/v1/fundraising/currencies")
 
-	req, err := api.BuildRequest(UserAgent, method, path.String(), nil)
+	req, err := api.BuildRequest(UserAgent, ContentType, method, path.String(), nil)
 	if err != nil {
 		return false, err
 	}
 
-	res, resBody, err := api.Do(svc.client, req, svc.HTTPLogger)
+	res, resBody, err := api.Do(svc.client, svc.origin, "IsValidCurrencyCode", req, "", svc.HTTPLogger)
 	if err != nil {
 		return false, err
 	}

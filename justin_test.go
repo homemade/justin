@@ -40,12 +40,8 @@ func createService(t *testing.T, env Env) *Service {
 	apiKey := ev(APIKeyEnvVar, t)
 	// Set a timeout for our API requests
 	tim := time.Duration(20) * time.Second
-	// Add a simple console logger for the http requests/responses
-	var logger api.LoggerFunc
-	logger = func(m string) (err error) {
-		t.Log(fmt.Sprintf("[%v] %s", time.Now(), m))
-		return nil
-	}
+	// Log http requests/responses to std out
+	logger := api.StructuredLogger(os.Stdout)
 	// Create the service
 	svc, err := CreateWithAPIKey(APIKeyContext{
 		APIKey: apiKey, Env: env, Timeout: tim, HTTPLogger: logger,
@@ -68,6 +64,7 @@ func createService(t *testing.T, env Env) *Service {
 			return nil
 		}
 	}
+	svc.TraceOrigin("unit testing")
 	return svc
 }
 
@@ -130,7 +127,7 @@ func testAccountAvailabilityCheck(t *testing.T, s *Service) {
 		return
 	}
 	if !avail {
-		t.Errorf("expected AccountAvailabilityCheck to return true but returned %b", avail)
+		t.Errorf("expected AccountAvailabilityCheck to return true but returned %t", avail)
 	}
 	// UnAvailable
 	userEmail, _, err := getUserCreds(t)
@@ -146,7 +143,7 @@ func testAccountAvailabilityCheck(t *testing.T, s *Service) {
 		return
 	}
 	if avail {
-		t.Errorf("expected AccountAvailabilityCheck to return false but returned %b", avail)
+		t.Errorf("expected AccountAvailabilityCheck to return false but returned %t", avail)
 		return
 	}
 }
@@ -172,7 +169,7 @@ func testValidate(t *testing.T, s *Service) {
 		return
 	}
 	if !valid {
-		t.Errorf("expected Validate to return true but returned %b", valid)
+		t.Errorf("expected Validate to return true but returned %t", valid)
 	}
 	// Invalid
 	eml, err = mail.ParseAddress("invaliduser@justgiving.com")
@@ -184,7 +181,7 @@ func testValidate(t *testing.T, s *Service) {
 		return
 	}
 	if valid {
-		t.Errorf("expected Validate to return false but returned %b", valid)
+		t.Errorf("expected Validate to return false but returned %t", valid)
 	}
 }
 
@@ -339,7 +336,7 @@ func testFundraisingPageAPI(t *testing.T, s *Service) {
 		return
 	}
 	if avail {
-		t.Errorf("expected FundraisingPageUrlCheck to return false but returned %b", avail)
+		t.Errorf("expected FundraisingPageUrlCheck to return false but returned %t", avail)
 		return
 	}
 
@@ -359,7 +356,7 @@ func testFundraisingPageAPI(t *testing.T, s *Service) {
 	// Check a non existent page doesn't exist
 	avail, _, err = s.FundraisingPageURLCheck("hopefullythispagenamewillneverexist")
 	if !avail {
-		t.Errorf("expected FundraisingPageUrlCheck to return true but returned %b", avail)
+		t.Errorf("expected FundraisingPageUrlCheck to return true but returned %t", avail)
 		return
 	}
 
