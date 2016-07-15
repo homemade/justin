@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/mail"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/homemade/justin/api"
@@ -19,7 +20,7 @@ type Env int
 
 const (
 	// Version is the current release
-	Version = "1.0.0"
+	Version = "1.1.0"
 
 	// UserAgent is set to identify justin requests
 	UserAgent = "justin " + Version
@@ -466,4 +467,141 @@ func (svc *Service) IsValidCurrencyCode(code string) (bool, error) {
 	}
 	return false, nil
 
+}
+
+// FundraisingPageRef represents a valid reference to a JustGiving fundraising page
+type FundraisingPageRef struct {
+	charityID uint
+
+	eventID uint
+
+	id uint
+
+	shortName string
+}
+
+func (r *FundraisingPageRef) CharityID() uint {
+	return r.charityID
+}
+func (r *FundraisingPageRef) EventID() uint {
+	return r.eventID
+}
+
+// FundraisingPageResults returns the current fundraising results for the specified JustGiving page
+func (svc *Service) FundraisingPageResults(page *FundraisingPageRef) (models.FundraisingResults, error) {
+
+	var result models.FundraisingResults
+	method := "GET"
+	path := bytes.NewBuffer([]byte(svc.BasePath))
+	path.WriteString("/")
+	path.WriteString(svc.APIKey)
+	path.WriteString("/v1/fundraising/pages/")
+	path.WriteString(page.shortName)
+
+	req, err := api.BuildRequest(UserAgent, ContentType, method, path.String(), nil)
+	if err != nil {
+		return result, err
+	}
+
+	res, resBody, err := api.Do(svc.client, svc.origin, "FundraisingPageResults", req, "", svc.HTTPLogger)
+	if err != nil {
+		return result, err
+	}
+
+	if res.StatusCode != 200 {
+		return result, fmt.Errorf("invalid response %s", res.Status)
+	}
+
+	result = models.FundraisingResults{}
+	if err = json.Unmarshal([]byte(resBody), &result); err != nil {
+		return result, fmt.Errorf("invalid response %v", err)
+	}
+
+	return result, nil
+
+}
+
+// FundraisingPagesForCharityAndUser returns the charity's fundraising pages registered with the specified JustGiving user account
+func (svc *Service) FundraisingPagesForCharityAndUser(charityID uint, account mail.Address) ([]*FundraisingPageRef, error) {
+
+	var results []*FundraisingPageRef
+
+	// mail.Address stores email in the format <rob@golang.org>, this simply removes the `<` `>`
+	em := account.String()
+	if em != "" {
+		em = em[1 : len(em)-1]
+	}
+
+	method := "GET"
+	path := bytes.NewBuffer([]byte(svc.BasePath))
+	path.WriteString("/")
+	path.WriteString(svc.APIKey)
+	path.WriteString("/v1/account/")
+	path.WriteString(em)
+	path.WriteString("/pages/?charityId=")
+	path.WriteString(strconv.FormatUint(uint64(charityID), 10))
+
+	req, err := api.BuildRequest(UserAgent, ContentType, method, path.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	res, resBody, err := api.Do(svc.client, svc.origin, "FundraisingPagesForCharityAndUser", req, "", svc.HTTPLogger)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf("invalid response %s", res.Status)
+	}
+
+	var result = []struct {
+		EventID       uint   `json:"eventId"`
+		PageID        uint   `json:"pageId"`
+		PageShortName string `json:"pageShortName"`
+	}{}
+
+	if err := json.Unmarshal([]byte(resBody), &result); err != nil {
+		return nil, fmt.Errorf("invalid response %v", err)
+	}
+
+	for _, p := range result {
+		if p.PageID > 0 {
+			results = append(results, &FundraisingPageRef{
+				charityID: charityID,
+				eventID:   p.EventID,
+				id:        p.PageID,
+				shortName: p.PageShortName,
+			})
+
+		}
+	}
+
+	return results, nil
+}
+
+// FundraisingPagesForEvent returns the fundraising pages registered for the specified event
+func (svc *Service) FundraisingPagesForEvent(eventID uint) ([]*FundraisingPageRef, error) {
+
+	results, totalPagination, totalFundraisingPages, err := paginatedFundraisingPagesForEvent(svc, eventID, 0)
+	if err != nil {
+		return nil, err
+	}
+	if totalPagination > 1 {
+		for i := 2; i <= int(totalPagination); i++ {
+			var nextResults []*FundraisingPageRef
+			nextResults, totalPagination, totalFundraisingPages, err = paginatedFundraisingPagesForEvent(svc, eventID, uint(i))
+			if err != nil {
+				return nil, err
+			}
+			for _, nr := range nextResults {
+				results = append(results, nr)
+			}
+		}
+	}
+
+	if int(totalFundraisingPages) != len(results) {
+		return results, fmt.Errorf("inconsistent read, expected %d results but have %d", int(totalFundraisingPages), len(results))
+	}
+
+	return results, nil
 }

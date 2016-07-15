@@ -360,6 +360,32 @@ func testFundraisingPageAPI(t *testing.T, s *Service) {
 		return
 	}
 
+	// Check we can retrieve all the pages
+	pages, err := s.FundraisingPagesForEvent(uint(eventID))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//Check fundraising results are as expected
+	if len(pages) > 0 {
+		pgfr, err := s.FundraisingPageResults(pages[len(pages)-1]) // our most recent one should be last
+		if err != nil {
+			t.Fatal(err)
+			return
+		}
+		if pg.TargetAmount != pgfr.Target {
+			t.Errorf("the fundraising page results are not as expected, see %#v", pgfr)
+			return
+		}
+		t.Logf("FundraisingResults %#v", pgfr)
+	}
+
+	// Check we can retrieve the pages based on the charity and user
+	_, err = s.FundraisingPagesForCharityAndUser(uint(charityID), *eml)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 }
 
 func TestFundraisingPageAPI(t *testing.T) {
