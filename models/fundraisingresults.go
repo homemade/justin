@@ -9,7 +9,3 @@ type FundraisingResults struct {
 	TotalRaisedSMS                string `json:"totalRaisedSms"`
 	TotalEstimatedGiftAid         string `json:"totalEstimatedGiftAid"`
 }
-
-// page id, date, FundraisingResults_id
-// is 3 cols year, month, day better than date?
-// run every hour updating above

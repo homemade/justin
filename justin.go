@@ -486,6 +486,12 @@ func (r *FundraisingPageRef) CharityID() uint {
 func (r *FundraisingPageRef) EventID() uint {
 	return r.eventID
 }
+func (r *FundraisingPageRef) ID() uint {
+	return r.id
+}
+func (r *FundraisingPageRef) ShortName() string {
+	return r.shortName
+}
 
 // FundraisingPageResults returns the current fundraising results for the specified JustGiving page
 func (svc *Service) FundraisingPageResults(page *FundraisingPageRef) (models.FundraisingResults, error) {
