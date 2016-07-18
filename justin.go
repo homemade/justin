@@ -57,11 +57,15 @@ type Service struct {
 // APIKeyContext contains settings for creating a justin Service with an API Key.
 //
 // HTTPLogger is an optional implementation of the Logger interface, if not provided no logging will be carried out
+//
+// SkipValidation is an optional flag to skip the call to validate the API Key during creation
+
 type APIKeyContext struct {
-	APIKey     string
-	Env        Env
-	Timeout    time.Duration
-	HTTPLogger api.Logger
+	APIKey         string
+	Env            Env
+	Timeout        time.Duration
+	HTTPLogger     api.Logger
+	SkipValidation bool
 }
 
 // CreateWithAPIKey instantiates the Service using an APIKey for authentication
@@ -79,14 +83,17 @@ func CreateWithAPIKey(api APIKeyContext) (svc *Service, err error) {
 	}
 
 	// Check it works
-	eml, err := mail.ParseAddress("webmaster@justgiving.com")
-	if err != nil {
-		return nil, fmt.Errorf("error creating test email to validate api key %v", err)
+	if !svc.SkipValidation {
+		eml, err := mail.ParseAddress("webmaster@justgiving.com")
+		if err != nil {
+			return nil, fmt.Errorf("error creating test email to validate api key %v", err)
+		}
+		_, err = svc.AccountAvailabilityCheck(*eml)
+		if err != nil {
+			return nil, fmt.Errorf("error validating api key %v", err)
+		}
 	}
-	_, err = svc.AccountAvailabilityCheck(*eml)
-	if err != nil {
-		return nil, fmt.Errorf("error validating api key %v", err)
-	}
+
 	return svc, nil
 }
 
