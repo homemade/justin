@@ -514,6 +514,11 @@ func (svc *Service) FundraisingPageResults(page *FundraisingPageRef) (models.Fun
 		return result, err
 	}
 
+	if res.StatusCode == 410 {
+		result.Cancelled = true
+		return result, nil
+	}
+
 	if res.StatusCode != 200 {
 		return result, fmt.Errorf("invalid response %s", res.Status)
 	}

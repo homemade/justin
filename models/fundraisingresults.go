@@ -8,4 +8,5 @@ type FundraisingResults struct {
 	TotalRaisedOnline             string `json:"totalRaisedOnline"`
 	TotalRaisedSMS                string `json:"totalRaisedSms"`
 	TotalEstimatedGiftAid         string `json:"totalEstimatedGiftAid"`
+	Cancelled                     bool
 }
