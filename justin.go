@@ -568,10 +568,6 @@ func (svc *Service) FundraisingPagesForCharityAndUser(charityID uint, account ma
 		return nil, err
 	}
 
-	if res.StatusCode == 404 {
-		return results, nil
-	}
-
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("invalid response %s", res.Status)
 	}
