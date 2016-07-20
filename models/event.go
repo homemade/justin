@@ -10,7 +10,7 @@ type Event struct {
 	CompletionDate string `json:"completionDate"`
 	ExpiryDate     string `json:"expiryDate"`
 	StartDate      string `json:"startDate"`
-	EventType      string `json:"eventType"`
+	Type           string `json:"eventType"`
 	Location       string `json:"location"`
 }
 
