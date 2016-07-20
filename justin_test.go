@@ -366,6 +366,24 @@ func testFundraisingPageAPI(t *testing.T, s *Service) {
 		t.Fatal(err)
 	}
 
+	// ...and check the event
+	evt, err := s.Event(uint(eventID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = evt.ParseStartDate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = evt.ParseCompletionDate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = evt.ParseExpiryDate()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	//Check fundraising results are as expected
 	if len(pages) > 0 {
 		pgfr, err := s.FundraisingPageResults(pages[len(pages)-1]) // our most recent one should be last
@@ -377,7 +395,12 @@ func testFundraisingPageAPI(t *testing.T, s *Service) {
 			t.Errorf("the fundraising page results are not as expected, see %#v", pgfr)
 			return
 		}
-		t.Logf("FundraisingResults %#v", pgfr)
+		ed, err := pgfr.ParseEventDate()
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("FundraisingResults %#v\n", pgfr)
+		t.Logf("FundraisingResults.ParseEventDate() %#v\n", ed)
 	}
 
 	// Check we can retrieve the pages based on the charity and user

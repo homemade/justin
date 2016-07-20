@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 // FundraisingResults contains the current fundraising results as provided by JustGiving
 type FundraisingResults struct {
 	Target                        string `json:"fundraisingTarget"`
@@ -8,5 +10,11 @@ type FundraisingResults struct {
 	TotalRaisedOnline             string `json:"totalRaisedOnline"`
 	TotalRaisedSMS                string `json:"totalRaisedSms"`
 	TotalEstimatedGiftAid         string `json:"totalEstimatedGiftAid"`
-	Cancelled                     bool
+	EventDate                     string `json:"eventDate"`
+	PageCancelled                 bool
+}
+
+// ParseEventDate attempts to convert the EventDate returned by JustGiving to a Time
+func (r FundraisingResults) ParseEventDate() (time.Time, error) {
+	return ParseDate(r.EventDate)
 }

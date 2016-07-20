@@ -522,7 +522,7 @@ func (svc *Service) FundraisingPageResults(page *FundraisingPageRef) (models.Fun
 	}
 
 	if res.StatusCode == 410 {
-		result.Cancelled = true
+		result.PageCancelled = true
 		return result, nil
 	}
 
@@ -626,4 +626,40 @@ func (svc *Service) FundraisingPagesForEvent(eventID uint) ([]*FundraisingPageRe
 	}
 
 	return results, nil
+}
+
+// Event returns the specified JustGiving event
+func (svc *Service) Event(eventID uint) (*models.Event, error) {
+	var result models.Event
+
+	method := "GET"
+	path := bytes.NewBuffer([]byte(svc.BasePath))
+	path.WriteString("/")
+	path.WriteString(svc.APIKey)
+	path.WriteString("/v1/event/")
+	path.WriteString(strconv.FormatUint(uint64(eventID), 10))
+
+	req, err := api.BuildRequest(UserAgent, ContentType, method, path.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, resBody, err := api.Do(svc.client, svc.origin, "Event", req, "", svc.HTTPLogger)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode == 404 {
+		return nil, nil
+	}
+
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf("invalid response %s", res.Status)
+	}
+
+	if err = json.Unmarshal([]byte(resBody), &result); err != nil {
+		return nil, fmt.Errorf("invalid response %v", err)
+	}
+
+	return &result, nil
 }
