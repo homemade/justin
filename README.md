@@ -186,5 +186,7 @@ Registers a Fundraising Page on the JustGiving website
 ```
 
 ## Roadmap
+Update to use Go modules
+
 Add Team API methods
 https://api.justgiving.com/docs/resources/v1/Team
